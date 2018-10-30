@@ -2,6 +2,7 @@ import { NgModule, ModuleWithProviders } from "@angular/core";
 import { HTTP_INTERCEPTORS } from "@angular/common/http";
 import { NativeInterceptor } from "./services/interceptors/native-interceptor";
 import { NativeHttpClient } from "./services/native-http.service";
+import { ModuleOptions } from "./module-options";
 
 @NgModule({
     providers: [
@@ -10,23 +11,20 @@ import { NativeHttpClient } from "./services/native-http.service";
 })
 export class NgxCordovaNativeHttpModule {
 
-    public static forRoot(options?: NgxCordovaNativeHttpModule.Options): ModuleWithProviders {
+    public static forRoot(options: ModuleOptions): ModuleWithProviders {
         return {
             ngModule: NgxCordovaNativeHttpModule,
-            providers: options.intercept ? [
+            providers: [
                 {
+                    provide: "ModuleOptions",
+                    useValue: options
+                },
+                ...(options.intercept ? [{
                     provide: HTTP_INTERCEPTORS,
                     useClass: NativeInterceptor,
                     multi: true
-                }
-            ] : []
-        }
-    }
-}
-
-export namespace NgxCordovaNativeHttpModule {
-
-    export interface Options {
-        intercept?: boolean;
+                }] : [])
+            ]
+        };
     }
 }

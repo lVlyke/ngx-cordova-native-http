@@ -1,6 +1,6 @@
 {
   "name": "ngx-cordova-native-http",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Angular wrapper for cordova-plugin-advanced-http. Optionally integrates with Angular HttpClient for seamless testing and deployment.",
   "main": "index.js",
   "author": "Mychal Thompson <mychal.r.thompson@gmail.com>",

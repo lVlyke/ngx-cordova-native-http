@@ -1,23 +1,49 @@
+import { ModuleOptions } from './../../module-options';
 import { NativeHttpRequestOptions, NativeHttpMethod, NativeHttpResponse } from "../native-http.service";;
-import { Observable } from "rxjs";
-import { Injectable } from "@angular/core";
+import { Observable, of } from "rxjs";
+import { Injectable, Inject } from "@angular/core";
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpHeaders, HttpResponse, HttpParams } from "@angular/common/http";
 import { NativeHttpClient } from "../native-http.service";
-import { map } from "rxjs/operators";
+import { map, mergeMap } from "rxjs/operators";
 
 @Injectable()
 export class NativeInterceptor implements HttpInterceptor {
 
-    constructor (private nativeHttp: NativeHttpClient) {}
+    constructor (
+        private readonly nativeHttp: NativeHttpClient,
+        @Inject("ModuleOptions") private options: ModuleOptions
+        ) {}
 
     public static httpParams(params: { [param: string]: any }): HttpParams {
         return Object.keys(params).reduce((httpParams, paramName) => {
-            httpParams.set(paramName, String(params[paramName]));
-            return httpParams;
+            return httpParams.set(paramName, String(params[paramName]));
         }, new HttpParams());
     }
 
-    public intercept<T>(req: HttpRequest<T>, _next: HttpHandler): Observable<HttpEvent<T>> {
+    public intercept<T>(req: HttpRequest<T>, next: HttpHandler): Observable<HttpEvent<T>> {
+        return of(this.options.intercept)
+            .pipe(mergeMap((interceptOpt) => {
+                if (interceptOpt instanceof Function) {
+                    const callbackResult = interceptOpt(req);
+                    if (callbackResult instanceof Observable) {
+                        return callbackResult;
+                    } else {
+                        return of(callbackResult);
+                    }
+                } else {
+                    return of(interceptOpt);
+                }
+            }))
+            .pipe(mergeMap((shouldIntercept: boolean) => {
+                if (shouldIntercept) {
+                    return this.doIntercept(req);
+                } else {
+                    return next.handle(req);
+                }
+            }));
+    }
+
+    private doIntercept<T>(req: HttpRequest<T>): Observable<HttpEvent<T>> {
         return this.nativeHttp.request(<NativeHttpMethod>req.method, req.url, this.mapRequest(req))
             .pipe(map((response: NativeHttpResponse & { value?: T }) => new HttpResponse<T>({
                 body: response.value,
